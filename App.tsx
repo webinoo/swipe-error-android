@@ -1,14 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { Text, StyleSheet } from "react-native";
-import Constants from "expo-constants";
 import {
-  PanGestureHandler,
-  PanGestureHandlerGestureEvent,
-} from "react-native-gesture-handler";
-import Animated, {
-  runOnJS,
-  useAnimatedGestureHandler,
-} from "react-native-reanimated";
+  Text,
+  StyleSheet,
+  Alert,
+  Platform,
+  View,
+  ViewStyle,
+} from "react-native";
+import Constants from "expo-constants";
+import { ReactNode } from "react";
+import { PanGestureHandlerEventPayload } from "react-native-gesture-handler";
+
+const IS_DEBUG_ENABLED = typeof atob !== "undefined";
+
+const withAnimation = (content: ReactNode, style: ViewStyle, callback: any) => {
+  const { Animation, runOnJS } = require("./Animation");
+  return Animation((event: PanGestureHandlerEventPayload) => {
+    "worklet";
+    runOnJS(callback)(event.velocityX > 0 ? "right" : "left");
+  })(content, style);
+};
 
 const App = () => {
   const [swipe, setSwipe] = useState("");
@@ -16,28 +27,20 @@ const App = () => {
   useEffect(() => {
     if (swipe !== "") {
       console.log(`Swipe ${swipe}`);
+      Alert.alert(swipe);
       // HERE do some additional logic what you need to do (for example dispatch redux action)
       setSwipe("");
     }
   }, [swipe]);
 
-  const onGestureHandler =
-    useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
-      onEnd: (event) => {
-        // I'm not sure why is that but somtimes it's not working and runOnJS has to be used
-        setSwipe(event.velocityX > 0 ? "right" : "left");
-        // runOnJS(setSwipe)(event.velocityX > 0 ? "right" : "left");
-      },
-    });
+  const content = (
+    <Text style={styles.paragraph}>Swipe left or right and watch console</Text>
+  );
 
-  return (
-    <PanGestureHandler onGestureEvent={onGestureHandler}>
-      <Animated.View style={styles.container}>
-        <Text style={styles.paragraph}>
-          Swipe left or right and watch console
-        </Text>
-      </Animated.View>
-    </PanGestureHandler>
+  return !(IS_DEBUG_ENABLED && Platform.OS === "android") ? (
+    withAnimation(content, styles.container, setSwipe)
+  ) : (
+    <View style={styles.container}>{content}</View>
   );
 };
 
